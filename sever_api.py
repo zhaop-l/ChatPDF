@@ -73,7 +73,7 @@ async def process_uploaded_pdf(file):
 		return None
 
 
-@app.post("/upload-file")
+@app.post("/pdfapi/upload-file")
 async def upload_file(file: UploadFile = File(...)):
 	try:
 		pdf_document = await process_uploaded_pdf(file)
@@ -94,7 +94,7 @@ async def upload_file(file: UploadFile = File(...)):
 		return {'pdfId': None, "message": "PDF file parsing error", "code": 400, "time": get_current_time()}
 
 
-@app.post("/chat-pdf")
+@app.post("/pdfapi/chat-pdf")
 async def chat_pdf(request: Request):
 	try:
 		json_post_raw = await request.json()
@@ -129,18 +129,22 @@ async def chat_pdf(request: Request):
 		return {'pdfId': None, "message": "Failed to process PDF chat", "code": 400, "time": get_current_time()}
 
 
-@app.post("/delete-pdf")
+@app.post("/pdfapi/delete-pdf")
 async def delete_pdf(request: Request):
 	try:
 		json_post_raw = await request.json()
 		pdf_id = json_post_raw.get("pdfId")
 		pdf_id_dict = load_pdf_id_dict()
 		
-		if pdf_id:
-			delete_pdf_data(pdf_id)
+		if isinstance(pdf_id, str):
+			pdf_id = [pdf_id]
 		
-		if pdf_id in pdf_id_dict:
-			del pdf_id_dict[pdf_id]
+		for i in pdf_id:
+			if i:
+				delete_pdf_data(i)
+			
+			if i in pdf_id_dict:
+				del pdf_id_dict[i]
 		
 		return {'pdfId': pdf_id, "message": "Success", "code": 200, "time": get_current_time()}
 	except Exception as e:

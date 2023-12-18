@@ -2,14 +2,16 @@
 # @Time    : 2023/12/3 18:25
 # @Author  : zhaop-l(zhaop-l@glocon.com)
 from sentence_transformers import SentenceTransformer, util
-
+import torch
 
 class PDF_Embeddings:
 	def __init__(self):
 		self.model = SentenceTransformer("BAAI/bge-large-zh-v1.5")
 	
 	def get_text_embedding(self, pdf_text):
-		embeddings_t = self.model.encode(pdf_text)
+		embeddings_t = self.model.encode(pdf_text).cpu()
+		torch.cuda.empty_cache()
+		torch.cuda.ipc_collect()
 		print("embedding finish.")
 		return embeddings_t
 	
