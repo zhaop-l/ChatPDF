@@ -19,6 +19,16 @@ prompt_template = """
 问题:
 {question}"""
 
+prompt_template_summary = """
+我将给你输入一个PDF文件的文本内容，你需要对该文件的内容进行简单总结，100字以内。
+输入内容：
+"""
+
+prompt_template_question = """
+请您根据下面的输入内容，提出三个中文问题，使用{'问题1':,'问题2':,'问题3':}的json格式输出。
+输入内容：
+"""
+
 
 def chat_glm(prompt, max_length=4096, top_p=0.7, temperature=0.7):
 	response, history = model.chat(
@@ -34,9 +44,7 @@ def chat_glm(prompt, max_length=4096, top_p=0.7, temperature=0.7):
 	return response
 
 
-
-
-def chat_glm_api(prompt,temperature=0.85):
+def chat_glm_api(prompt, temperature=0.85):
 	headers: dict = {"Content-Type": "application/json"}
 	url = "http://10.5.171.165:8002"
 	response = requests.post(
@@ -51,16 +59,53 @@ def chat_glm_api(prompt,temperature=0.85):
 	return result
 
 
-def match_and_ask(query, pdf_data):
+def chat_with_llm(prompt, input_type, temperature=0.85):
+	if input_type == "summary":
+		prompt = prompt_template_summary + prompt
+		summary = chat_glm(prompt, temperature=temperature)
+		return summary
 	
-	page_find_dict = pdf_embeddings.get_similarity_page(query, pdf_data)
+	elif input_type == "question":
+		prompt = prompt_template_question + prompt
+		question_flag = True
+		question_list = []
+		while question_flag:
+			question = chat_glm(prompt, temperature=temperature)
+			return_dict = question
+			if return_dict[0] != "{":
+				return_dict = "{" + return_dict
+			if return_dict[-1] != "}":
+				return_dict = return_dict + "}"
+			new_return_dict = return_dict[:-2].strip()
+			if new_return_dict[-1] != "'":
+				new_return_dict = new_return_dict + "'}"
+			else:
+				new_return_dict += "}"
+			try:
+				b = eval(new_return_dict)
+				for key, value in b.items():
+					question_list.append(value)
+				if len(question_list)>=3:
+					question_flag = False
+			except Exception as e:
+				pass
+		return question_list[:3]
+	
+	else:
+		return None
 
+
+def match_and_ask(query, pdf_data):
+	page_find_dict = pdf_embeddings.get_similarity_page(query, pdf_data)
+	
 	text = ""
+	page_number_list = []
 	for page_number, page_text in page_find_dict.items():
+		page_number_list.append(page_number)
 		text += f"第{page_number}页" + "\n" + page_text["text"] + "\n"
 	
 	prompt = prompt_template.format(context=text, question=query)
 	
 	answer = chat_glm(prompt)
 	# answer = chat_glm_api(prompt)
-	return answer
+	return answer,page_number_list[0]

@@ -84,11 +84,14 @@ async def upload_file(file: UploadFile = File(...)):
 		loop = asyncio.get_event_loop()
 		pdf_data = await loop.run_in_executor(None, main_pdf_embeddings, pdf_document)
 		# pdf_data = main_chatpdf(pdf_document)
+		summary = pdf_data['summary']
+		questions = pdf_data['questions']
+		data = {'summary':summary, 'questions': questions}
 		data_save_path = save_pdf_data(pdf_id, pdf_data)
 		
 		code = 201 if pdf_data['encode_error'] else 200
 		
-		return {'pdfId': pdf_id, "message": "Success", "code": code, "time": get_current_time()}
+		return {'pdfId': pdf_id, 'data':data, "message": "Success", "code": code, "time": get_current_time()}
 	except Exception as e:
 		logger.error(f"Failed to upload file: {e}")
 		return {'pdfId': None, "message": "PDF file parsing error", "code": 400, "time": get_current_time()}
@@ -118,8 +121,8 @@ async def chat_pdf(request: Request):
 			query = message.get("query", None)
 			if query:
 				loop = asyncio.get_event_loop()
-				answer = await loop.run_in_executor(None,match_and_ask,query, pdf_data)
-				result.append({'query': query, 'answer': answer})
+				answer, page_number = await loop.run_in_executor(None,match_and_ask,query, pdf_data)
+				result.append({'query': query, 'answer': answer,'pageNumber': page_number})
 		
 		response = {'data': result, 'pdfId': pdf_id, "message": "Success", "code": 200, "time": get_current_time()}
 		return response

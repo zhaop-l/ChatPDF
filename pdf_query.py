@@ -5,6 +5,7 @@
 from collections import Counter
 from tqdm import tqdm
 from pdf_embedding import pdf_embeddings
+from ChatGLM import chat_with_llm
 
 
 def bbox_overlap(bbox1, bbox2):
@@ -151,12 +152,12 @@ def get_constant(lines_width, x0_list, font_size_list, text_list, page_info):
 	text_list_count = Counter(text_list)
 	duplicate_rows = []
 	for i, j in text_list_count.items():
-		if j >= 5:
+		if j >= len(page_info) * 0.9:
 			duplicate_rows.append(i)
 	
 	effective_font_size = []
 	for i, j in font_size_cunt.items():
-		if j > len(page_info) // 5:
+		if j >= 1:
 			effective_font_size.append(i)
 	font_size_mode = font_size_cunt.most_common(1)[0][0]
 	print(f"""
@@ -413,6 +414,13 @@ def main_pdf_embeddings(pdf_doc):
 	new_pdf_info2 = check_table_image(new_pdf_info1)
 	page_info_dict = get_page_info_dict(new_pdf_info2)
 	
+	pdf_text = ""
+	for page_number, page_text in page_info_dict.items():
+		pdf_text += "\n" + page_text['text']
+	
+	summary = chat_with_llm(pdf_text[:3000], input_type='summary')
+	questions = chat_with_llm(pdf_text[:3000], input_type='question')
+	
 	page_text_chunk_dict = get_text_chunk(page_info_dict)
 	page_text_chunk_list = []
 	page_text_chunk_index = []
@@ -424,4 +432,5 @@ def main_pdf_embeddings(pdf_doc):
 	page_text_chunk_embeddings = pdf_embeddings.get_text_embedding(page_text_chunk_list)
 	
 	return {'text_chunk_embeddings': page_text_chunk_embeddings, 'text_chunk_list': page_text_chunk_list,
-	        'text_chunk_index': page_text_chunk_index, 'page_info_dict': page_info_dict, 'encode_error': encode_error,}
+	        'text_chunk_index': page_text_chunk_index, 'page_info_dict': page_info_dict, 'encode_error': encode_error,
+	        'summary': summary, 'questions': question}
