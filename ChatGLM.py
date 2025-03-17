@@ -6,7 +6,7 @@ import requests
 from transformers import AutoModel, AutoTokenizer
 from pdf_embedding import pdf_embeddings
 
-model_path = r"/data2/LlmModel/chatglm3-6b/"
+model_path = r"chatglm3-6b/"
 tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 model = AutoModel.from_pretrained(model_path, trust_remote_code=True).cuda()
 model = model.eval()
@@ -46,7 +46,7 @@ def chat_glm(prompt, max_length=4096, top_p=0.7, temperature=0.7):
 
 def chat_glm_api(prompt, temperature=0.85):
 	headers: dict = {"Content-Type": "application/json"}
-	url = "http://10.5.171.165:8002"
+	url = "http://0.0.0.0:8002"
 	response = requests.post(
 		url=url,
 		data=json.dumps(
